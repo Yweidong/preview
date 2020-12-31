@@ -1,0 +1,21 @@
+aliyun:
+  oss:
+      endpoint: oss-cn-shanghai.aliyuncs.com
+      accessKeyId: LTAI4GF81t1rJxgDJYv9h7KJ
+      accessKeySecret: hubVh7CBZhdtLi92BqW8v3JyKBGKZD
+      bucketName: dong-pdf-preview
+      urlPrefix: https://preview.itdung.cn/
+      bucketUrl: http://dong-pdf-preview.oss-cn-shanghai.aliyuncs.com/··  
+server:
+  port: 8677
+  tomcat:
+    max-swallow-size: 200MB
+spring:
+  servlet:
+    multipart:
+      max-file-size: 100MB
+      max-request-size: 100MB
+#存储预览pdf的临时目录
+preview:
+  temporary_preview_path: E:\\pdfpreview\\
+
