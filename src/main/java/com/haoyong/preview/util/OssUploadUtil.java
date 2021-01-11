@@ -38,28 +38,32 @@ public class OssUploadUtil {
     }
 
 
-
-    public  String uploadFile(MultipartFile file,String suffix) {
-        String fileUrl = uploadImg2Oss(file,suffix);
+    /**
+     * @param part_path 文件路径前缀
+     *
+     */
+    public  String uploadFile(MultipartFile file,String suffix,String part_path) {
+        String fileUrl = uploadImg2Oss(file,suffix,part_path);
         String str = getFileUrl(fileUrl);
         return  str;
     }
 
-    public String uploadFile(File file,String suffix) throws FileNotFoundException {
+
+    public String uploadFile(File file,String suffix,String part_path) throws FileNotFoundException {
 
 
-        String fileUrl = uploadImg2Oss(file,suffix);
+        String fileUrl = uploadImg2Oss(file,suffix,part_path);
         String str = getFileUrl(fileUrl);
         return  str;
     }
 
-    private String uploadImg2Oss(File file,String suffix) {
+    private String uploadImg2Oss(File file,String suffix,String part_path) {
 //        //1、限制最大文件为20M
 //        if (file.getSize() > 1024 * 1024 *20) {
 //            return "图片太大";
 //        }
 
-        String name = getUploadName(suffix);
+        String name = getUploadName(part_path,suffix);
 
         try {
             InputStream inputStream = new FileInputStream(file);
@@ -72,18 +76,18 @@ public class OssUploadUtil {
     }
 
     //获取上传的文件名
-    private String getUploadName(String suffix) {
+    private String getUploadName(String part_path,String suffix) {
         String uuid = String.valueOf(idWorker.nextId());
-        return uuid + "." + suffix;
+        return part_path + "/" + uuid + "." + suffix;
     }
 
-    private String uploadImg2Oss(MultipartFile file,String suffix) {
+    private String uploadImg2Oss(MultipartFile file,String suffix,String part_path) {
 //        //1、限制最大文件为20M
 //        if (file.getSize() > 1024 * 1024 *20) {
 //            return "图片太大";
 //        }
 
-        String name = getUploadName(suffix);
+        String name = getUploadName(part_path,suffix);
 
         try {
             InputStream inputStream = file.getInputStream();
@@ -109,9 +113,10 @@ public class OssUploadUtil {
      */
     public String getFileUrl(String fileUrl) {
         if (fileUrl !=null && fileUrl.length()>0) {
-            String[] split = fileUrl.split("/");
+//            String[] split = fileUrl.split("/");
 //            String url =  this.getUrl(this.filedir + split[split.length - 1]);
-            String url =  this.getUrl( split[split.length - 1]);
+//            String url =  this.getUrl( split[split.length - 1]);
+            String url = this.getUrl(fileUrl);
             return url;
         }
         return null;

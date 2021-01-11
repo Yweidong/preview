@@ -5,7 +5,7 @@ aliyun:
       accessKeySecret: hubVh7CBZhdtLi92BqW8v3JyKBGKZD
       bucketName: dong-pdf-preview
       urlPrefix: https://preview.itdung.cn/
-      bucketUrl: http://dong-pdf-preview.oss-cn-shanghai.aliyuncs.com/··  
+      bucketUrl: http://dong-pdf-preview.oss-cn-shanghai.aliyuncs.com/
 server:
   port: 8677
   tomcat:
