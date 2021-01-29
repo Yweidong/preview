@@ -27,7 +27,6 @@ public class OssController {
 
     /**
      * @param file 文件
-     * @param column_id   栏目ID
      * @param video_root_path  视频存储路径
      * @param doc_root_path 原始文档存储路径
      * @param preview_root_path  预览文档存储路径
@@ -36,7 +35,6 @@ public class OssController {
     @PostMapping("/uploadfile")
     public ResultBody<Map<String, Object>> fileUpload(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("column_id") String column_id,
             @RequestParam("video_root_path") String video_root_path,
             @RequestParam("doc_root_path") String doc_root_path,
             @RequestParam("preview_root_path") String preview_root_path
@@ -45,7 +43,6 @@ public class OssController {
 
         Map<String, Object> map = indexService.uploadFileOperation(
                 file,
-                column_id,
                 video_root_path,
                 doc_root_path,
                 preview_root_path

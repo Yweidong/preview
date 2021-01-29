@@ -1,11 +1,11 @@
 aliyun:
   oss:
-      endpoint: oss-cn-shanghai.aliyuncs.com
-      accessKeyId: LTAI4GF81t1rJxgDJYv9h7KJ
-      accessKeySecret: hubVh7CBZhdtLi92BqW8v3JyKBGKZD
-      bucketName: dong-pdf-preview
-#      urlPrefix: https://preview.itdung.cn/
-      bucketUrl: http://dong-pdf-preview.oss-cn-shanghai.aliyuncs.com/
+    endpoint: oss-cn-shanghai.aliyuncs.com
+    accessKeyId: LTAI4GF81t1rJxgDJYv9h7KJ
+    accessKeySecret: hubVh7CBZhdtLi92BqW8v3JyKBGKZD
+    bucketName: dong-pdf-preview
+    #      urlPrefix: https://preview.itdung.cn/
+    bucketUrl: http://dong-pdf-preview.oss-cn-shanghai.aliyuncs.com/
   sms:
     accessKeyId: LTAI4G2Fwi7Xe6hDyQHtBXax
     accessKeySecret: gCXQX26SF5QE4fDOfVDHIAk0K0IKD9
@@ -44,9 +44,9 @@ spring:
         max-wait: 3000ms
 #存储预览pdf的临时目录
 preview:
-  temporary_preview_path: E:\\pdfpreview\\
+  temporary_preview_path: /home/previewpdf/
 file:
-  locationTemp: E:\\locationTemp\\
+  locationTemp: /home/locationTempTest/
 management:
   endpoint:
     shutdown:
@@ -55,5 +55,3 @@ management:
     web:
       exposure:
         include: shutdown
-      base-path: /previewActuator # 自定义管理端点的前缀(保证安全)
-

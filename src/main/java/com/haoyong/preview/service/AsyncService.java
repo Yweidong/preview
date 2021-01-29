@@ -8,4 +8,6 @@ public interface AsyncService {
     Future<Integer> fileToPdf(File file,String targpath);//文件转pdf
 
     void deleteTemporaryFile(String targpath); //删除临时文件
+
+    Future<Long> getAVTime(File file);//获取音视频的时长
 }

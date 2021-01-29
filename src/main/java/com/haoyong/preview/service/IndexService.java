@@ -18,7 +18,6 @@ public interface IndexService {
 
     Map<String,Object> uploadFileOperation(
             MultipartFile file,
-            String column_id,
             String video_root_path,
             String doc_root_path,
             String preview_root_path

@@ -1,6 +1,8 @@
 package com.haoyong.preview.service.impl;
 
+import com.haoyong.preview.exce.BizException;
 import com.haoyong.preview.service.AsyncService;
+import com.haoyong.preview.util.AudioVideoUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.encryption.InvalidPasswordException;
@@ -9,6 +11,8 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.AsyncResult;
 
 import org.springframework.stereotype.Service;
+import ws.schild.jave.MultimediaInfo;
+import ws.schild.jave.MultimediaObject;
 
 import java.io.File;
 import java.io.IOException;
@@ -55,6 +59,23 @@ public class AsyncServiceImpl implements AsyncService {
 
         if (file.exists()) {
             file.delete();
+        }
+    }
+
+    @Override
+    @Async("taskExecutor")
+    public Future<Long> getAVTime(File file) {
+        try {
+
+            //解析文件
+            MultimediaObject object = new MultimediaObject(file);
+            MultimediaInfo multimediaInfo = object.getInfo();
+
+            long duration = multimediaInfo.getDuration();
+
+            return new AsyncResult<>(duration/1000);
+        } catch (Exception e) {
+            throw new BizException(e.getMessage());
         }
     }
 }

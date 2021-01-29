@@ -10,7 +10,8 @@ public enum CommonEnum implements BaseErrorInfoInterface {
     NOT_FOUND("404", "未找到该资源!"),
     INTERNAL_SERVER_ERROR("500", "服务器内部错误!"),
     SERVER_BUSY("503","服务器正忙，请稍后再试!"),
-    FILE_IS_EXIST("10001","文件名已存在")
+    FILE_IS_EXIST("10001","文件名已存在"),
+    SMS_SEND_FAILED("10002","短信验证发送失败")
     ;
     /** 错误码 */
     private String resultCode;

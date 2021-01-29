@@ -1,6 +1,7 @@
 package com.haoyong.preview.exce;
 
 import com.haoyong.preview.common.BaseErrorInfoInterface;
+import lombok.Data;
 
 /**
  * @program: preview
@@ -9,6 +10,7 @@ import com.haoyong.preview.common.BaseErrorInfoInterface;
  * @contact:1371690483@qq.com
  * @create: 2020-12-28 18:59
  **/
+
 public class BizException extends RuntimeException {
     private static final long serialVersionUID = 1L;
 

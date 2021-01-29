@@ -17,7 +17,7 @@ import javax.servlet.http.HttpServletRequest;
  * @contact:1371690483@qq.com
  * @create: 2020-12-28 19:09
  **/
-@RestControllerAdvice
+@RestControllerAdvice(basePackages = {"com.haoyong.preview.controller"})
 @Slf4j
 public class GlobalExceptionAdvice {
     /**
@@ -29,7 +29,7 @@ public class GlobalExceptionAdvice {
     @ExceptionHandler(value = BizException.class)
     @ResponseBody
     public  ResultBody bizExceptionHandler(HttpServletRequest req, BizException e){
-        log.error("发生业务异常！原因是：{}",e.getErrorMsg());
+//        log.error("发生业务异常！原因是：{}",e.getErrorMsg());
         return ResultBody.error(e.getErrorCode(),e.getErrorMsg());
     }
 
@@ -42,7 +42,7 @@ public class GlobalExceptionAdvice {
     @ExceptionHandler(value =NullPointerException.class)
     @ResponseBody
     public ResultBody exceptionHandler(HttpServletRequest req, NullPointerException e){
-        log.error("发生空指针异常！原因是:",e);
+//        log.error("发生空指针异常！原因是:",e);
         return ResultBody.error(CommonEnum.BODY_NOT_MATCH);
     }
 

@@ -1,5 +1,6 @@
 package com.haoyong.preview.config;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableAsync;
@@ -16,14 +17,19 @@ import java.util.concurrent.ThreadPoolExecutor;
  **/
 @EnableAsync
 @Configuration
+@Slf4j
 public class TaskExecutePoolConfig {
+
+    private static final int THREAD_LINE_NUM = Runtime.getRuntime().availableProcessors();
+
     @Bean
     public ThreadPoolTaskExecutor taskExecutor() {
+
         ThreadPoolTaskExecutor poolExecutor = new ThreadPoolTaskExecutor();
         // 核心线程数
-        poolExecutor.setCorePoolSize(5);
+        poolExecutor.setCorePoolSize(THREAD_LINE_NUM);
         // 最大线程数
-        poolExecutor.setMaxPoolSize(15);
+        poolExecutor.setMaxPoolSize(2*THREAD_LINE_NUM);
         // 队列大小
         poolExecutor.setQueueCapacity(100);
         // 线程最大空闲时间

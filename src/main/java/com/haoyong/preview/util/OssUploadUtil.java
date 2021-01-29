@@ -1,20 +1,26 @@
 package com.haoyong.preview.util;
 
+import com.aliyun.oss.ClientException;
 import com.aliyun.oss.OSSClient;
-import com.aliyun.oss.model.ObjectMetadata;
-import com.aliyun.oss.model.PutObjectResult;
+import com.aliyun.oss.OSSException;
+import com.aliyun.oss.model.*;
 import com.haoyong.preview.Enum.CommonEnum;
 import com.haoyong.preview.config.AliOssConfig;
 import com.haoyong.preview.exce.BizException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
 import java.io.*;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * @program: preview
@@ -29,28 +35,106 @@ public class OssUploadUtil {
 
     private AliOssConfig aliOssConfig;
     private OSSClient ossClient;
+    private ThreadPoolTaskExecutor taskExecutor;
     private SnowflakeIdWorker idWorker = new SnowflakeIdWorker(0, 0);
 
 
-    public OssUploadUtil(AliOssConfig aliOssConfig, OSSClient ossClient) {
+    public OssUploadUtil(AliOssConfig aliOssConfig, OSSClient ossClient, @Qualifier("taskExecutor") ThreadPoolTaskExecutor taskExecutor) {
         this.aliOssConfig = aliOssConfig;
         this.ossClient = ossClient;
+        this.taskExecutor = taskExecutor;
     }
-
 
     /**
-     * @param part_path 文件路径前缀
      *
+     *分片上传
      */
-    public  String uploadFile(MultipartFile file,String suffix,String part_path) {
-        String fileUrl = uploadImg2Oss(file,suffix,part_path);
-        String str = getFileUrl(fileUrl);
-        return  str;
+    public String burstFile(File file,String suffix,String part_path){
+        try {
+            String objectName = getUploadName(part_path, suffix);
+            InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(aliOssConfig.getBucketName(),objectName );
+            InitiateMultipartUploadResult upresult = ossClient.initiateMultipartUpload(request);
+            // 返回uploadId，它是分片上传事件的唯一标识，您可以根据这个uploadId发起相关的操作，如取消分片上传、查询分片上传等。
+            String uploadId = upresult.getUploadId();
+            // partETags是PartETag的集合。PartETag由分片的ETag和分片号组成。
+            List<PartETag> partETags =  new ArrayList<PartETag>();
+            // 计算文件有多少个分片。
+            final long partSize = 3 * 1024 * 1024L;
+
+            long fileLength = file.length();
+            int partCount = (int) (fileLength / partSize);
+            if (fileLength % partSize != 0) {
+                partCount++;
+            }
+
+            CountDownLatch latch = new CountDownLatch(partCount);
+            // 遍历分片上传。
+            for (int i = 0; i < partCount; i++) {
+                long startPos = i * partSize;
+                long curPartSize = (i + 1 == partCount) ? (fileLength - startPos) : partSize;
+                InputStream instream = new FileInputStream(file);
+                // 跳过已经上传的分片。
+                instream.skip(startPos);
+
+                int finalI = i;
+                Runnable run =  new Runnable() {
+
+                   @Override
+                   public void run() {
+                       UploadPartRequest uploadPartRequest = new UploadPartRequest();
+                       uploadPartRequest.setBucketName(aliOssConfig.getBucketName());
+                       uploadPartRequest.setKey(objectName);
+                       uploadPartRequest.setUploadId(uploadId);
+                       uploadPartRequest.setInputStream(instream);
+                       // 设置分片大小。除了最后一个分片没有大小限制，其他的分片最小为100 KB。
+                       uploadPartRequest.setPartSize(curPartSize);
+                       // 设置分片号。每一个上传的分片都有一个分片号，取值范围是1~10000，如果超出这个范围，OSS将返回InvalidArgument的错误码。
+                       uploadPartRequest.setPartNumber( finalI + 1);
+                       // 每个分片不需要按顺序上传，甚至可以在不同客户端上传，OSS会按照分片号排序组成完整的文件。
+                       UploadPartResult uploadPartResult = ossClient.uploadPart(uploadPartRequest);
+                       // 每次上传分片之后，OSS的返回结果包含PartETag。PartETag将被保存在partETags中。
+                       partETags.add(uploadPartResult.getPartETag());
+                       latch.countDown();
+                   }
+               };
+               taskExecutor.execute(run);
+
+
+            }
+            latch.await();
+            // 创建CompleteMultipartUploadRequest对象。
+            // 在执行完成分片上传操作时，需要提供所有有效的partETags。OSS收到提交的partETags后，会逐一验证每个分片的有效性。当所有的数据分片验证通过后，OSS将把这些分片组合成一个完整的文件。
+            CompleteMultipartUploadRequest completeMultipartUploadRequest =
+                    new CompleteMultipartUploadRequest(aliOssConfig.getBucketName(), objectName, uploadId, partETags);
+
+
+            // 完成上传。
+            CompleteMultipartUploadResult completeMultipartUploadResult = ossClient.completeMultipartUpload(completeMultipartUploadRequest);
+            return completeMultipartUploadResult.getLocation();
+        } catch (Exception e) {
+            throw new BizException(e.getMessage());
+        }
     }
 
+    //断点续传
+    public String breakPointFile(String locafilepath,String suffix,String part_path) throws Throwable {
+        String objectName = getUploadName(part_path, suffix);
+        UploadFileRequest request = new UploadFileRequest(aliOssConfig.getBucketName(), objectName);
+        ObjectMetadata meta = new ObjectMetadata();
+        meta.setContentType(suffix);
 
-    public String uploadFile(File file,String suffix,String part_path) throws FileNotFoundException {
+        request.setUploadFile(locafilepath);
+        request.setBucketName(aliOssConfig.getBucketName());
+        request.setTaskNum(10);
+        request.setPartSize(1 * 1024 * 1024);
+        request.setEnableCheckpoint(true);
+        request.setObjectMetadata(meta);
+        UploadFileResult uploadFileResult = ossClient.uploadFile(request);
+        CompleteMultipartUploadResult uploadResult = uploadFileResult.getMultipartUploadResult();
+        return uploadResult.getLocation();
+    }
 
+    public String uploadFile(File file,String suffix,String part_path) {
 
         String fileUrl = uploadImg2Oss(file,suffix,part_path);
         String str = getFileUrl(fileUrl);
@@ -81,30 +165,8 @@ public class OssUploadUtil {
         return part_path + "/" + uuid + "." + suffix;
     }
 
-    private String uploadImg2Oss(MultipartFile file,String suffix,String part_path) {
-//        //1、限制最大文件为20M
-//        if (file.getSize() > 1024 * 1024 *20) {
-//            return "图片太大";
-//        }
 
-        String name = getUploadName(part_path,suffix);
 
-        try {
-            InputStream inputStream = file.getInputStream();
-            this.uploadFile2OSS(inputStream, name,suffix);
-            return name;
-        }
-        catch (Exception e) {
-           throw new BizException(CommonEnum.BODY_NOT_MATCH);
-        }
-    }
-
-    //判断文件名是否已上传
-    private boolean fileNameExists(String encryptName) {
-
-       return ossClient.doesObjectExist(aliOssConfig.getBucketName(), encryptName);
-
-    }
 
     /**
      * 通过文件名获取文完整件路径
@@ -136,7 +198,8 @@ public class OssUploadUtil {
 
         URL url = ossClient.generatePresignedUrl(aliOssConfig.getBucketName(), key, expiration);
         if (url != null) {
-            return  getShortUrl(url.toString().replaceFirst(aliOssConfig.getBucketUrl(),aliOssConfig.getUrlPrefix()));
+//            return  getShortUrl(url.toString().replaceFirst(aliOssConfig.getBucketUrl(),aliOssConfig.getUrlPrefix()));
+            return getShortUrl(url.toString());
         }
         return null;
     }
@@ -153,6 +216,7 @@ public class OssUploadUtil {
             objectMetadata.setHeader("Pragma", "no-cache");
             objectMetadata.setContentType(contentType(suffix));
             objectMetadata.setContentDisposition("inline;filename=" + fileName);
+
             //上传文件
 
 
@@ -188,7 +252,7 @@ public class OssUploadUtil {
      */
     private static String contentType(String fileType){
         fileType = fileType.toLowerCase();
-        String contentType = "";
+        String contentType = null;
         switch (fileType) {
             case "bmp": contentType = "image/bmp";
                 break;
@@ -213,6 +277,8 @@ public class OssUploadUtil {
             case "xml":contentType = "text/xml";
                 break;
             case "mp4":contentType = "video/mp4";
+                break;
+            case "pdf":contentType = "application/pdf";
                 break;
             default: contentType = "application/octet-stream";
                 break;

@@ -63,7 +63,7 @@ public class ResultBody<T> {
      *
      * @return
      */
-    public <T> ResultBody<T> success() {
+    public static <T> ResultBody<T> success() {
         return success(null);
     }
 
